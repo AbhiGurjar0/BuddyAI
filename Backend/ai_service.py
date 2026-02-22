@@ -3,9 +3,19 @@ from pydantic import BaseModel
 from langchain_community.vectorstores import FAISS
 from langchain_ollama import OllamaEmbeddings, ChatOllama
 from langchain_core.prompts import PromptTemplate
+from fastapi.middleware.cors import CORSMiddleware
 import os
 
+
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # or ["http://localhost:5000"]
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 DB_PATH = "faiss_db"
 
@@ -38,7 +48,7 @@ def chat(req: SearchRequest):
     vectorstore.add_texts([f"User: {req.query}"])
 
     ## then here retrieve relevant memory and return it as context for the response
-    docs = vectorstore.similarity_search(req.query, k=3)
+    docs = vectorstore.similarity_search(req.query, k=10)
     memory_context = "\n".join([d.page_content for d in docs])
 
     ## here create prompt through langchain
@@ -72,4 +82,4 @@ BuddyAI Response:"""
     vectorstore.add_texts([f"Buddy: {answer}"])
     vectorstore.save_local(DB_PATH)
 
-    return {"response": answer, "memory_used": memory_context}
+    return {"response": answer}
